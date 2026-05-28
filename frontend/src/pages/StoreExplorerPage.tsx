@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -13,12 +14,14 @@ import {
   ThemeIcon,
   Title
 } from "@mantine/core";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
 import { fetchNearbyStores } from "../api/store";
 import { fetchPersonalizedRecommendations } from "../api/recommendation";
 import type { StoreSummary, Recommendation } from "../types";
 import { useAuthStore, type AuthState } from "../store/authStore";
+import { getApiError } from "../utils/errors";
 
 export default function StoreExplorerPage() {
   const user = useAuthStore((state: AuthState) => state.user);
@@ -27,17 +30,25 @@ export default function StoreExplorerPage() {
   const [loading, setLoading] = useState(false);
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const loadStores = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const storeList = await fetchNearbyStores(latitude, longitude, 10);
       setStores(storeList);
       if (user?.role === "CUSTOMER") {
-        const recs = await fetchPersonalizedRecommendations();
-        setRecommendations(recs);
+        try {
+          const recs = await fetchPersonalizedRecommendations();
+          setRecommendations(recs);
+        } catch {
+          // recommendations are non-critical — fail silently
+        }
       }
+    } catch (err) {
+      setFetchError(getApiError(err, "Could not load stores. Check your connection and try again."));
     } finally {
       setLoading(false);
     }
@@ -77,6 +88,12 @@ export default function StoreExplorerPage() {
           </Group>
         </Group>
       </Card>
+
+      {fetchError && (
+        <Alert icon={<IconAlertCircle />} color="red" radius="xl" title="Could not load stores" withCloseButton onClose={() => setFetchError(null)}>
+          {fetchError}
+        </Alert>
+      )}
 
       {loading ? (
         <Group justify="center">

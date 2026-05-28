@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import type { User, UserRole } from "../types";
 import { login as loginRequest, register as registerRequest, type LoginPayload, type RegisterPayload } from "../api/auth";
+import { getApiError } from "../utils/errors";
 
 export type AuthState = {
   user?: User;
@@ -25,7 +26,7 @@ export const useAuthStore = create<AuthState>((set: (state: Partial<AuthState>) 
       localStorage.setItem("ng_user", JSON.stringify(user));
       set({ user, loading: false });
     } catch (error) {
-      set({ error: "Login failed", loading: false });
+      set({ error: getApiError(error, "Login failed. Check your credentials."), loading: false });
     }
   },
   async register(payload: RegisterPayload) {
@@ -36,7 +37,7 @@ export const useAuthStore = create<AuthState>((set: (state: Partial<AuthState>) 
       localStorage.setItem("ng_user", JSON.stringify(user));
       set({ user, loading: false });
     } catch (error) {
-      set({ error: "Registration failed", loading: false });
+      set({ error: getApiError(error, "Registration failed. Please try again."), loading: false });
     }
   },
   logout() {

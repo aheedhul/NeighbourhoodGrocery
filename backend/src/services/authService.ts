@@ -49,7 +49,8 @@ export async function registerUser(params: {
 
   const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: "12h" });
 
-  return { user, token };
+  const { passwordHash: _pw, ...safeUser } = user;
+  return { user: safeUser, token };
 }
 
 export async function authenticateUser(email: string, password: string) {
@@ -66,5 +67,6 @@ export async function authenticateUser(email: string, password: string) {
 
   const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: "12h" });
 
-  return { user, token };
+  const { passwordHash: _pw, ...safeUser } = user;
+  return { user: safeUser, token };
 }

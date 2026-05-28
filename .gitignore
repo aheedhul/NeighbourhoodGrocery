@@ -1,9 +1,51 @@
+### Dependencies
 node_modules/
+
+### Build outputs
 dist/
+build/
+backend/dist/
+
+### Environment & secrets
 .env
 .env.*
+!.env.example
+!backend/.env.example
+
+### Prisma
 .prisma/
-coverage/
-.DS_Store
-.vscode/
+backend/prisma/migrations/**/
+
+### Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+### Test coverage
+coverage/
+
+### OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+### Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+### Runtime
+*.pid
+*.seed
+*.pid.lock

@@ -21,7 +21,7 @@ export async function runExpiryDiscountSweep() {
     const msUntilExpiry = item.expiryDate.getTime() - now.getTime();
     const daysUntilExpiry = Math.ceil(msUntilExpiry / (1000 * 60 * 60 * 24));
 
-    let status = InventoryStatus.AVAILABLE;
+    let status: InventoryStatus = InventoryStatus.AVAILABLE;
 
     if (daysUntilExpiry <= 0) {
       status = InventoryStatus.EXPIRED;
