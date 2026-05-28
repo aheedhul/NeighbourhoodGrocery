@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  OWNER
+  DELIVERY
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  LOW_STOCK
+  NEAR_EXPIRY
+  EXPIRED
+}
+
+enum PaymentMethod {
+  COD
+  ONLINE
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         UserRole
+  phone        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  ownedStores  Store[]    @relation("StoreOwner")
+  customerOrders Order[]  @relation("CustomerOrders")
+  deliveries   DeliveryAssignment[] @relation("DeliveryStaff")
+  recommendationEvents RecommendationEvent[]
+}
+
+model Store {
+  id               String    @id @default(uuid())
+  name             String
+  description      String?
+  addressLine1     String
+  addressLine2     String?
+  city             String
+  state            String
+  postalCode       String
+  latitude         Float
+  longitude        Float
+  deliveryRadiusKm Float     @default(8)
+  minOrderValue    Decimal   @default(200)
+  ownerId          String
+  owner            User      @relation("StoreOwner", fields: [ownerId], references: [id])
+  products         InventoryItem[]
+  orders           Order[]
+  excelUploads     ExcelUpload[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Product {
+  id             String         @id @default(uuid())
+  sku            String?        @unique
+  name           String
+  description    String?
+  category       String?
+  basePrice      Decimal        @default(0)
+  imageUrl       String?
+  shelfLifeDays  Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  inventoryItems InventoryItem[]
+  orderItems     OrderItem[]
+  recommendationEvents RecommendationEvent[]
+}
+
+model InventoryItem {
+  id               String          @id @default(uuid())
+  store            Store           @relation(fields: [storeId], references: [id])
+  storeId          String
+  product          Product         @relation(fields: [productId], references: [id])
+  productId        String
+  batchCode        String?
+  quantity         Int
+  reservedQuantity Int             @default(0)
+  expiryDate       DateTime?
+  status           InventoryStatus @default(AVAILABLE)
+  dynamicPrice     Decimal         @default(0)
+  lastPriceUpdate  DateTime        @default(now())
+  demandScore      Float           @default(0)
+  recommendationScore Float        @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  events           InventoryEvent[]
+}
+
+model InventoryEvent {
+  id              String         @id @default(uuid())
+  inventoryItem   InventoryItem  @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId String
+  changeType      String
+  quantityChange  Int
+  notes           String?
+  createdAt       DateTime       @default(now())
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  store             Store         @relation(fields: [storeId], references: [id])
+  storeId           String
+  customer          User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerId        String
+  status            OrderStatus   @default(PENDING)
+  paymentMethod     PaymentMethod @default(COD)
+  subtotal          Decimal
+  discountTotal     Decimal       @default(0)
+  deliveryFee       Decimal       @default(0)
+  total             Decimal
+  deliveryAddress   String
+  deliveryLatitude  Float
+  deliveryLongitude Float
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  items             OrderItem[]
+  delivery          DeliveryAssignment?
+  predictions       DemandForecast?
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  order        Order    @relation(fields: [orderId], references: [id])
+  orderId      String
+  product      Product  @relation(fields: [productId], references: [id])
+  productId    String
+  quantity     Int
+  unitPrice    Decimal
+  discount     Decimal  @default(0)
+  finalPrice   Decimal
+  expiryDate   DateTime?
+}
+
+model DeliveryAssignment {
+  id              String         @id @default(uuid())
+  order           Order          @relation(fields: [orderId], references: [id])
+  orderId         String         @unique
+  deliveryStaff   User?          @relation("DeliveryStaff", fields: [deliveryStaffId], references: [id])
+  deliveryStaffId String?
+  status          DeliveryStatus @default(PENDING)
+  assignedAt      DateTime       @default(now())
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  notes           String?
+}
+
+model DemandForecast {
+  id               String   @id @default(uuid())
+  order            Order    @relation(fields: [orderId], references: [id])
+  orderId          String   @unique
+  horizonDays      Int
+  predictedDemand  Float
+  explanation      String?
+  createdAt        DateTime @default(now())
+}
+
+model RecommendationEvent {
+  id          String   @id @default(uuid())
+  customer    User     @relation(fields: [customerId], references: [id])
+  customerId  String
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  score       Float    @default(0)
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model ExcelUpload {
+  id          String   @id @default(uuid())
+  store       Store    @relation(fields: [storeId], references: [id])
+  storeId     String
+  fileName    String
+  processedAt DateTime @default(now())
+  summary     String?
+}
